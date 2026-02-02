@@ -1,6 +1,6 @@
-# MSFT Stock Time Series Analysis & Forecasting
+# Time Series Analysis & Forecasting
 
-This project explores Microsoft (MSFT) stock price data from 01-01-2025 using time series analysis techniques.  
+This project explores time series analysis and forcasting techniques on Microsoft (MSFT) stock price data from 01-01-2025.
 The goal is to build a structured workflow starting from data inspection, followed by exploratory analysis, feature engineering, and forecasting experiments.
 
 ---
