@@ -15,7 +15,7 @@ The project is organized into seperate notebooks, each focusing and serving a di
 
 ---
 
-## (01_initial_data_inspection.ipynb)[] ✅  
+## [01_initial_data_inspection.ipynb](01_initial_data_inspection.ipynb) ✅  
 **Purpose:** Validate data integrity and establish baseline understanding.
 
 Completed steps:
@@ -113,8 +113,8 @@ Available fields: Open, High, Low, Close, Volume
 ## Current Status
 
 ✅ Notebook 01 completed  
-✅ Notebook 02 completed
-🚧 Notebook 03 currently in progress
+✅ Notebook 02 completed  
+🚧 Notebook 03 currently in progress  
 📌 Modeling stage will be finalized during feature engineering
 
 ---
