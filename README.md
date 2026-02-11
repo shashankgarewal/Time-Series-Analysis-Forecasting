@@ -1,45 +1,73 @@
 # Time Series Analysis & Forecasting
 
 This project explores time series analysis and forcasting techniques on Microsoft (MSFT) stock price data from 01-01-2025.
-The goal is to build a structured workflow starting from data inspection, followed by exploratory analysis, feature engineering, and forecasting experiments.
+
+The objective is to build an structured and evidence-driven workflow:
+
+> Data Inspection → Statistical Diagnostics → Feature Engineering → Modeling → Evaluation
+
 
 ---
 
 ## Project Workflow
 
-The project is organized into multiple notebooks, each focusing on a specific stage:
+The project is organized into seperate notebooks, each focusing and serving a different purpose:
 
 ---
 
-### 1. Initial Data Inspection ✅
-- Load MSFT stock data from Yahoo Finance  
+## (01_initial_data_inspection.ipynb)[] ✅  
+**Purpose:** Validate data integrity and establish baseline understanding.
+
+Completed steps:
+- Load MSFT stock data from Yahoo Finance database
 - Validate dataset structure and date handling  
 - Check missing values and missing trading days  
 - Perform basic trend visualization (daily/weekly/monthly)  
 - Compute returns and inspect extreme movement days  
 
-➡️ Notebook: [01_initial_data_inspection.ipynb](01_initial_data_inspection.ipynb)
+**Outcome:**
+
+- No structural data quality issues detected  
+- Price levels exhibit non-stationarity  
+- Extreme price movements align with high-volume event days  
+
 
 ---
 
-### 2. Exploratory Data Analysis (EDA) *(In Progress)*
-Planned analysis includes:
-- Return distribution behavior  
-- Rolling volatility and trend smoothing  
-- Stationarity and autocorrelation diagnostics  
+### 2. [02_exploratory_data_analysis.ipynb](02_exploratory_data_analysis.ipynb) ✅ 
+**Purpose:** Diagnose statistical properties relevant to forecasting.
 
-➡️ Notebook: [02_exploratory_data_analysis.ipynb](02_exploratory_data_analysis.ipynb)
+Completed analysis:
+- Horizon selection
+- Return and log-return distribution inspection
+- Classical and STL decomposition (multi-horizon)  
+- Stationarity diagnostics  
+- ACF / PACF Autocorrelation analysis on log-returns  
+- Rolling standard deviation and volatility clustering check
+
+### Key Findings
+
+- Price series is non-stationary in levels  
+- Log-returns shows weak stationarity  
+- Log-returns exhibit minimal linear autocorrelation  
+- Decomposition may've display apparent seasonality driven by volatility structure rather than true periodic behavior  
+
+**Conclusion:**  
+Linear autoregressive structure alone is insufficient. Deliberate feature engineering is required before modeling.
 
 ---
 
-### 3. Feature Engineering *(Planned)*
-Potential features to explore:
-- Lag-based predictors  
-- Rolling statistics (moving averages, volatility)  
-- Momentum-style indicators  
-- Forecasting target definition  
+### 3. [03_feature_engineering.ipynb](03_feature_engineering.ipynb) *(In Progress)*
+**Purpose:** Construct model-ready predictive features.
 
-➡️ Notebook: [03_feature_engineering.ipynb](03_feature_engineering.ipynb)
+Planned steps:
+- Define forecasting target (next-day log-return or direction)  
+- Create multi-lag return features  
+- Engineer rolling statistics (volatility, momentum)  
+- Develop regime-based indicators  
+- Implement time-aware train/test splits  
+- Ensure no look-ahead bias  
+- Export modeling-ready dataset  
 
 ---
 
@@ -67,8 +95,9 @@ Model performance will be evaluated using time-series appropriate validation str
 
 ## Dataset
 
-Stock price data is sourced from Yahoo Finance using the  library.  
-Available fields include Open, High, Low, Close, Adjusted Close, and Volume.
+Source: Yahoo Finance via `yfinance`
+
+Available fields: Open, High, Low, Close, Volume
 
 ---
 
@@ -81,11 +110,12 @@ Available fields include Open, High, Low, Close, Adjusted Close, and Volume.
 
 ---
 
-## Status
+## Current Status
 
 ✅ Notebook 01 completed  
-🚧 Notebook 02 currently in progress  
-📌 Modeling stage will be decided after EDA findings
+✅ Notebook 02 completed
+🚧 Notebook 03 currently in progress
+📌 Modeling stage will be finalized during feature engineering
 
 ---
 
@@ -93,3 +123,6 @@ Available fields include Open, High, Low, Close, Adjusted Close, and Volume.
 
 The immediate next step is to perform deeper exploratory analysis on return behavior, volatility patterns, and stationarity before selecting appropriate forecasting models.
 
+## Author & Contacts
+📩[shashankgarewal4+project@gmail.com](mailto:shashankgarewal4+project@gmail.com)
+🔗[Linkedin](https://www.linkedin.com/in/shashankgarewal/)
