@@ -44,6 +44,7 @@ Completed analysis:
 - Stationarity diagnostics  
 - ACF / PACF Autocorrelation analysis on log-returns  
 - Rolling standard deviation and volatility clustering check
+- Calendar effect check
 
 ### Key Findings
 
@@ -106,7 +107,7 @@ Available fields: Open, High, Low, Close, Volume
 - Python, Pandas, NumPy
 - Matplotlib, Seaborn  
 - yfinance  
-- statsmodels (for time series diagnostics)
+- statsmodel, scipy (for time series diagnostics)
 
 ---
 
@@ -124,5 +125,6 @@ Available fields: Open, High, Low, Close, Volume
 The immediate next step is to perform deeper exploratory analysis on return behavior, volatility patterns, and stationarity before selecting appropriate forecasting models.
 
 ## Author & Contacts
+
 📩[shashankgarewal4+project@gmail.com](mailto:shashankgarewal4+project@gmail.com)
 🔗[Linkedin](https://www.linkedin.com/in/shashankgarewal/)
