@@ -5,44 +5,44 @@
 <title>{{ ticker }} Vol Forecaster</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; max-width: 820px; margin: 24px auto; padding: 0 16px; color: #222; }
-  h1 { font-size: 20px; margin: 0 0 20px; }
-  h2 { font-size: 15px; margin: 28px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-  .row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
-  .row label { width: 180px; font-size: 14px; flex-shrink: 0; }
-  input, select { padding: 5px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
-  button { padding: 6px 16px; font-size: 14px; cursor: pointer; border: 1px solid #999; border-radius: 4px; background: #f5f5f5; margin-top: 6px; }
-  button:hover { background: #e8e8e8; }
-  .status { font-size: 14px; }
-  .box { border: 1px solid #ddd; border-radius: 4px; padding: 10px 14px; margin-top: 10px; font-size: 13px; display: none; }
-  .box.err { border-color: #e55; background: #fff5f5; color: #c00; }
-  .box div { margin: 3px 0; }
-  .chart-wrap { display: none; margin-top: 12px; }
-  .hint { font-size: 12px; color: #888; }
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; max-width: 820px; margin: 24px auto; padding: 0 16px; color: #222; }
+h1 { font-size: 20px; margin: 0 0 20px; }
+h2 { font-size: 15px; margin: 28px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+.row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+.row label { width: 180px; font-size: 14px; flex-shrink: 0; }
+input, select { padding: 5px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+button { padding: 6px 16px; font-size: 14px; cursor: pointer; border: 1px solid #999; border-radius: 4px; background: #f5f5f5; margin-top: 6px; }
+button:hover { background: #e8e8e8; }
+.status { font-size: 14px; }
+.box { border: 1px solid #ddd; border-radius: 4px; padding: 10px 14px; margin-top: 10px; font-size: 13px; display: none; }
+.box.err { border-color: #e55; background: #fff5f5; color: #c00; }
+.box div { margin: 3px 0; }
+.chart-wrap { display: none; margin-top: 12px; }
+.hint { font-size: 12px; color: #888; }
 </style>
 </head>
 
 <body>
-<h1>{{ ticker }} — Regime Volatility Forecaster</h1>
+<h1> Regime Volatility Forecaster</h1>
 
 <!-- 1) TRAIN -->
 <h2>1) Train</h2>
 <div class="row">
-  <label>Ticker</label>
-  <input id="ticker" value="{{ ticker }}" style="width:120px; text-transform:uppercase;" />
-  <span class="hint">invalid falls back to MSFT</span>
+<label>Ticker</label>
+<input id="ticker" value="{{ ticker }}" style="width:120px; text-transform:uppercase;" />
+<span class="hint">invalid falls back to MSFT</span>
 </div>
 <div class="row">
-  <label>Regime detector</label>
-  <select id="detector">
+<label>Regime detector</label>
+<select id="detector">
     <option value="hysteresis">hysteresis</option>
     <option value="hmm">hmm</option>
-  </select>
+</select>
 </div>
 <div class="row">
-  <button onclick="trainModel()">Train</button>
-  <span class="status">Status: <b id="status-text">{{ "trained" if trained else "not trained" }}</b></span>
+<button onclick="trainModel()">Train</button>
+<span class="status">Status: <b id="status-text">{{ "trained" if trained else "not trained" }}</b></span>
 </div>
 <div class="box" id="train-box"></div>
 <div class="chart-wrap" id="regime-wrap"><canvas id="regime-chart" height="110"></canvas></div>
@@ -50,12 +50,12 @@
 <!-- 2) FORECAST -->
 <h2>2) Forecast (next-step volatility)</h2>
 <div class="row">
-  <label>Regime override</label>
-  <select id="regime-override">
+<label>Regime override</label>
+<select id="regime-override">
     <option value="">auto</option>
     <option value="low">low</option>
     <option value="high">high</option>
-  </select>
+</select>
 </div>
 <button onclick="runForecast()">Forecast</button>
 <div class="box" id="forecast-box"></div>
