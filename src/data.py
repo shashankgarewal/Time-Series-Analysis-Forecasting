@@ -8,9 +8,12 @@ import yfinance as yf
 import config
 
 
-def load():
-    df = yf.download(config.TICKER, start=config.START_DATE, auto_adjust=True, progress=False)
-    df.columns = df.columns.get_level_values(0)
+def load(ticker=None, start=config.START_DATE):
+    ticker = ticker or config.TICKER
+    """Returns: df, df_train, df_test"""
+    df = yf.download(ticker, start, auto_adjust=True, progress=False)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
     df.dropna(inplace=True)
 
     df["LogReturn"] = np.log(df["Close"]).diff()
@@ -24,7 +27,9 @@ def load():
 
 
 def build_features(df):
-    rolling_vol = df["LogReturn"].rolling(config.ROLLING_VOL_WINDOW).std()
+    """Returns: df["LogReturn", "rolling_vol"]"""
+
+    rolling_vol = df["LogReturn"].rolling(config.ROLLING_WINDOW).std()
     rolling_vol.name = "rolling_vol"
 
     features = pd.concat([df["LogReturn"], rolling_vol], axis=1).dropna()
