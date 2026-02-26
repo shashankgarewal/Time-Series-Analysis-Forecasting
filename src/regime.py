@@ -3,7 +3,6 @@
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 from hmmlearn.hmm import GaussianHMM
 
 import config
@@ -12,16 +11,18 @@ import config
 # --- Hysteresis detector ---
 
 class HysteresisDetector:
-    """Hystersis Detector Class"""
-    def fit(self, feature):
-        """determine threshold for regime"""
+    """.fit() & .predict()"""
+    def fit(self, feature: pd.Series) -> "HysteresisDetector":
+        """Compute entry/exit quantile thresholds from training rolling_vol."""
         self.enter_thresh = feature.quantile(config.HYST_LOW_TO_HIGH)
         self.exit_thresh  = feature.quantile(config.HYST_HIGH_TO_LOW)
         return self
 
-    def predict(self, feature):
-
-        # hysteresis state machine
+    def predict(self, feature: pd.Series):
+        """
+        Run hysteresis state machine over feature series.
+        Returns (high: bool Series, low: bool Series).
+        """
         states, in_high = [], False
         for v in feature.values:
             if not in_high and v >= self.enter_thresh:
@@ -33,13 +34,13 @@ class HysteresisDetector:
         high_raw = pd.Series(states, index=feature.index, dtype=bool)
 
         # drop short HIGH bursts (persistence filter)
-        m = high_raw.astype(int)
-        grp = (m != m.shift()).cumsum()
+        m       = high_raw.astype(int)
+        grp     = (m != m.shift()).cumsum()
         run_len = m.groupby(grp).transform("size")
 
         high = high_raw.copy()
         high[(high_raw == True) & (run_len < config.HYST_PERSISTENCE)] = False
-        low = ~high
+        low  = ~high
 
         return high, low
 
@@ -47,37 +48,23 @@ class HysteresisDetector:
 # --- HMM detector ---
 
 class HMMDetector:
-    """Class has fit(), predict() methods"""
-    def fit(self, features):
-        """features: [LogReturn, rolling_vol] DATAFRAME"""
-        X = features.values
-
+    def fit(self, features: pd.DataFrame) -> "HMMDetector":
+        """Fit HMM directly on [pctLogReturn, rolling_vol] features."""
         self.model = GaussianHMM(
-            n_components=config.HMM_N_STATES,
-            covariance_type="full",
-            n_iter=config.HMM_N_ITER,
-            random_state=config.SEED,
-            tol=1e-12
-        )
-        self.model.fit(X)
+            n_components=config.HMM_N_STATES, covariance_type="full", n_iter=config.HMM_N_ITER, 
+            random_state=config.SEED, tol=1e-12)
+        self.model.fit(features.values)
 
-        # state with higher mean rolling_vol = HIGH
+        # state with higher mean rolling_vol (col 1) = HIGH regime
         self.high_state = int(np.argmax(self.model.means_[:, 1]))
         return self
 
-    def predict(self, features):
+    def predict(self, features: pd.DataFrame):
         """
-        features: [LogReturn, rolling_vol] DATAFRAMEs
-        returns: DATAFRAMEs high, low regime 
+        Predict regime labels for feature DataFrame.
+        Returns (high: bool Series, low: bool Series).
         """
-        X = features.values
-        raw = self.model.predict(X)
-
-        labels = pd.Series(
-            ["high" if s == self.high_state else "low" for s in raw],
-            index=features.index,
-        )
-
-        high = labels == "high"
-        low  = labels == "low"
+        raw  = self.model.predict(features.values)
+        high = pd.Series(raw == self.high_state, index=features.index, dtype=bool)
+        low  = ~high
         return high, low
