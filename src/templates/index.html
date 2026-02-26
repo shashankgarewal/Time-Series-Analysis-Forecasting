@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>{{ ticker }} Vol Forecaster</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; max-width: 820px; margin: 24px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 20px; margin: 0 0 20px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+  .row label { width: 180px; font-size: 14px; flex-shrink: 0; }
+  input, select { padding: 5px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+  button { padding: 6px 16px; font-size: 14px; cursor: pointer; border: 1px solid #999; border-radius: 4px; background: #f5f5f5; margin-top: 6px; }
+  button:hover { background: #e8e8e8; }
+  .status { font-size: 14px; }
+  .box { border: 1px solid #ddd; border-radius: 4px; padding: 10px 14px; margin-top: 10px; font-size: 13px; display: none; }
+  .box.err { border-color: #e55; background: #fff5f5; color: #c00; }
+  .box div { margin: 3px 0; }
+  .chart-wrap { display: none; margin-top: 12px; }
+  .hint { font-size: 12px; color: #888; }
+</style>
+</head>
+
+<body>
+<h1>{{ ticker }} — Regime Volatility Forecaster</h1>
+
+<!-- 1) TRAIN -->
+<h2>1) Train</h2>
+<div class="row">
+  <label>Ticker</label>
+  <input id="ticker" value="{{ ticker }}" style="width:120px; text-transform:uppercase;" />
+  <span class="hint">invalid falls back to MSFT</span>
+</div>
+<div class="row">
+  <label>Regime detector</label>
+  <select id="detector">
+    <option value="hysteresis">hysteresis</option>
+    <option value="hmm">hmm</option>
+  </select>
+</div>
+<div class="row">
+  <button onclick="trainModel()">Train</button>
+  <span class="status">Status: <b id="status-text">{{ "trained" if trained else "not trained" }}</b></span>
+</div>
+<div class="box" id="train-box"></div>
+<div class="chart-wrap" id="regime-wrap"><canvas id="regime-chart" height="110"></canvas></div>
+
+<!-- 2) FORECAST -->
+<h2>2) Forecast (next-step volatility)</h2>
+<div class="row">
+  <label>Regime override</label>
+  <select id="regime-override">
+    <option value="">auto</option>
+    <option value="low">low</option>
+    <option value="high">high</option>
+  </select>
+</div>
+<button onclick="runForecast()">Forecast</button>
+<div class="box" id="forecast-box"></div>
+<div class="chart-wrap" id="eval-wrap"><canvas id="eval-chart" height="80"></canvas></div>
+
+<!-- 3) SIMULATE -->
+<h2>3) Simulate (Monte Carlo)</h2>
+<div class="row"><label>Last price</label><input type="number" id="last-price" placeholder="auto (last train close)" step="0.01" style="width:200px;" /></div>
+<div class="row"><label>Horizon (days)</label><input type="number" id="horizon" placeholder="auto (full test set)" min="1" max="2000" style="width:200px;" /></div>
+<div class="row"><label>Paths</label><input type="number" id="n-paths" value="500" min="100" max="5000" style="width:80px;" /></div>
+<button onclick="runSimulate()">Simulate</button>
+<div class="box" id="simulate-box"></div>
+<div class="chart-wrap" id="fan-wrap"><canvas id="fan-chart" height="90"></canvas></div>
+
+<!-- 4) WALK-FORWARD BACK-TEST -->
+<h2>4) Evaluate (walk-forward back-test)</h2>
+<p class="hint" style="margin:0 0 8px;">Re-fits day-by-day over the last N days; compares predicted vs realised vol proxy.</p>
+<div class="row"><label>Last N days</label><input type="number" id="duration" value="60" min="20" max="504" style="width:80px;" /></div>
+<button onclick="runEvaluate()">Evaluate</button>
+<div class="box" id="metrics-box"></div>
+<div class="chart-wrap" id="metrics-wrap"><canvas id="metrics-chart" height="90"></canvas></div>
+
+
+<script>
+// ── helpers ──────────────────────────────────────────────────────────────────
+function show(id, html, err = false) {
+    const el = document.getElementById(id);
+    el.innerHTML  = html;
+    el.style.display = "block";
+    el.className  = "box" + (err ? " err" : "");
+}
+
+function showChart(id) { document.getElementById(id).style.display = "block"; }
+
+function kv(k, v) { return `<div><b>${k}:</b> ${v}</div>`; }
+
+async function post(url, body) {
+    const res  = await fetch(url, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+}
+
+// ── 1) TRAIN ─────────────────────────────────────────────────────────────────
+let regimeChart = null;
+
+async function trainModel() {
+    show("train-box", "Training...");
+    try {
+        const data = await post("/train", {
+            regime_detector: document.getElementById("detector").value,
+            ticker:          document.getElementById("ticker").value.trim().toUpperCase(),
+        });
+
+        document.getElementById("status-text").textContent = "trained";
+        document.getElementById("last-price").value = data.last_close;
+        document.getElementById("horizon").value    = data.test_size;
+        show("train-box",
+            kv("ticker",         data.ticker) +
+            kv("detector",       data.detector) +
+            kv("train rows",     data.train_rows) +
+            kv("test rows",      data.test_rows) +
+            kv("high regime %",  data.high_regime_pct + "%") +
+            kv("GARCH AIC",      data.garch_aic) +
+            kv("EGARCH AIC",     data.egarch_aic)
+        );
+        drawRegimeChart(data);
+    } catch (e) { show("train-box", e.message, true); }
+}
+
+function drawRegimeChart(data) {
+    showChart("regime-wrap");
+    if (regimeChart) regimeChart.destroy();
+
+    // type:"line" + showLine:false + spanGaps:false mirrors matplotlib scatter(linestyle='none').
+    // backgroundColor:"transparent" prevents Chart.js filling under points and showing fill boxes in legend.
+    const lowVols  = data.scatter_vols.map((v, i) => data.scatter_regimes[i] === "low"  ? v : null);
+    const highVols = data.scatter_vols.map((v, i) => data.scatter_regimes[i] === "high" ? v : null);
+
+    const ds = (label, vols, color) => ({
+        label,
+        data:                 vols,
+        showLine:             false,
+        spanGaps:             false,
+        pointRadius:          2.5,
+        pointHoverRadius:     2.5,
+        pointBackgroundColor: color,
+        pointBorderWidth:     0,
+        borderColor:          color,   // legend swatch colour
+        backgroundColor:      "transparent",
+    });
+
+    regimeChart = new Chart(document.getElementById("regime-chart"), {
+        type: "line",
+        data: {
+            labels:   data.scatter_dates,
+            datasets: [
+                ds("LOW",  lowVols,  "#1a237e"),
+                ds("HIGH", highVols, "#4fc3f7"),
+            ],
+        },
+        options: {
+            animation: false,
+            plugins: {
+                tooltip: { enabled: false },
+                legend:  { display: true },
+                title:   { display: true, text: "Regimes on Rolling Volatility" },
+            },
+            scales: {
+                x: { ticks: { maxTicksLimit: 8 } },
+                y: { title: { display: true, text: "rolling vol (scaled)" } },
+            },
+        },
+    });
+}
+
+// ── 2) FORECAST ───────────────────────────────────────────────────────────────
+let evalChart = null;
+
+async function runForecast() {
+    show("forecast-box", "Forecasting...");
+    try {
+        const override = document.getElementById("regime-override").value;
+        const data     = await post("/forecast", override ? { regime: override } : {});
+
+        show("forecast-box",
+            kv("regime used",      data.regime) +
+            kv("vol (scaled)",     data.vol_scaled) +
+            kv("vol (raw)",        data.vol_raw) +
+            kv("vol (annualised)", (data.vol_annualised * 100).toFixed(2) + "%")
+        );
+        if (data.eval) drawEvalChart(data.eval);
+    } catch (e) { show("forecast-box", e.message, true); }
+}
+
+function drawEvalChart(ev) {
+    showChart("eval-wrap");
+    if (evalChart) evalChart.destroy();
+
+    evalChart = new Chart(document.getElementById("eval-chart"), {
+        type: "line",
+        data: {
+            labels:   ev.dates,
+            datasets: [
+                { label: "predicted vol",  data: ev.pred_vol,   borderColor: "steelblue", borderWidth: 1.5, pointRadius: 0 },
+                { label: "realised vol",   data: ev.actual_vol, borderColor: "orange",    borderWidth: 1.5, pointRadius: 0 },
+            ],
+        },
+        options: {
+            plugins: { title: { display: true, text: `Test Evaluation — MAE: ${ev.mae}  RMSE: ${ev.rmse}` } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 8 } },
+                y: { title: { display: true, text: "vol (scaled)" } },
+            },
+        },
+    });
+}
+
+// ── 3) SIMULATE ───────────────────────────────────────────────────────────────
+let fanChart = null;
+
+async function runSimulate() {
+    show("simulate-box", "Simulating...");
+    try {
+        const lastPrice = document.getElementById("last-price").value;
+        const horizon   = document.getElementById("horizon").value;
+        const body = { n_paths: parseInt(document.getElementById("n-paths").value) };
+        if (lastPrice) body.last_price = parseFloat(lastPrice);
+        if (horizon)   body.horizon    = parseInt(horizon);
+        const data = await post("/simulate", body);
+
+        show("simulate-box",
+            kv("last price",   "$" + data.last_price) +
+            kv("horizon",      data.horizon + " days") +
+            kv("paths",        data.n_paths) +
+            kv("median final", "$" + data.median_final) +
+            kv("min final",    "$" + data.min_final) +
+            kv("max final",    "$" + data.max_final)
+        );
+        drawFanChart(data);
+    } catch (e) { show("simulate-box", e.message, true); }
+}
+
+function drawFanChart(data) {
+    showChart("fan-wrap");
+    if (fanChart) fanChart.destroy();
+
+    const fan    = data.fan_chart;
+    const labels = data.date_labels;
+    const ticker = data.ticker;
+
+    // Band colors
+    const outerFill = "rgba(173, 214, 241, 0.45)";   // 5-95%  light blue
+    const innerFill = "rgba(100, 160, 210, 0.55)";   // 25-75% medium blue
+
+    fanChart = new Chart(document.getElementById("fan-chart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [
+                // outer band: p5 bottom edge (no fill itself)
+                { label: "5-95%",  data: fan["p5"],  borderWidth: 0, pointRadius: 0, backgroundColor: outerFill, fill: false },
+                // p95 fills down to p5 (-1)
+                { label: "_p95",   data: fan["p95"], borderWidth: 0, pointRadius: 0, backgroundColor: outerFill, fill: "-1" },
+                // inner band: p25 bottom edge
+                { label: "25-75%", data: fan["p25"], borderWidth: 0, pointRadius: 0, backgroundColor: innerFill, fill: false },
+                // p75 fills down to p25 (-1)
+                { label: "_p75",   data: fan["p75"], borderWidth: 0, pointRadius: 0, backgroundColor: innerFill, fill: "-1" },
+                // median
+                { label: "Median", data: fan["p50"], borderColor: "#1a237e", borderWidth: 2, pointRadius: 0, fill: false },
+                // actual price overlay
+                { label: `Actual ${ticker}`, data: data.actual_prices, borderColor: "#e53935", borderWidth: 1.8, pointRadius: 0, fill: false },
+            ],
+        },
+        options: {
+            plugins: {
+                title:  { display: true, text: `${ticker} Price Fan Chart — Regime Aware Monte Carlo` },
+                legend: {
+                    display: true,
+                    // hide the helper datasets whose labels start with "_"
+                    labels: { filter: item => !item.text.startsWith("_") },
+                },
+            },
+            scales: {
+                x: { ticks: { maxTicksLimit: 10 }, title: { display: false } },
+                y: { title: { display: true, text: "Price (USD)" } },
+            },
+        },
+    });
+}
+
+// ── 4) EVALUATE ───────────────────────────────────────────────────────────────
+let metricsChart = null;
+
+async function runEvaluate() {
+    show("metrics-box", "Running walk-forward back-test...");
+    try {
+        const data = await post("/metrics", {
+            duration: parseInt(document.getElementById("duration").value),
+        });
+
+        show("metrics-box",
+            kv("days back-tested", data.duration) +
+            kv("MAE (vol)",        data.mae) +
+            kv("RMSE (vol)",       data.rmse)
+        );
+        drawMetricsChart(data);
+    } catch (e) { show("metrics-box", e.message, true); }
+}
+
+function drawMetricsChart(data) {
+    showChart("metrics-wrap");
+    if (metricsChart) metricsChart.destroy();
+
+    metricsChart = new Chart(document.getElementById("metrics-chart"), {
+        type: "line",
+        data: {
+            labels:   data.dates,
+            datasets: [
+                { label: "predicted vol", data: data.pred_vol,   borderColor: "steelblue", borderWidth: 1.5, pointRadius: 0 },
+                { label: "realised vol",  data: data.actual_vol, borderColor: "orange",    borderWidth: 1.5, pointRadius: 0 },
+            ],
+        },
+        options: {
+            plugins: { legend: { display: true } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 8 } },
+                y: { title: { display: true, text: "vol (scaled)" } },
+            },
+        },
+    });
+}
+</script>
+</body>
+</html>
