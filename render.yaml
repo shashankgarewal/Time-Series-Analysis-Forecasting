@@ -2,31 +2,19 @@ services:
   - type: web
     name: regime-vol-forecaster
     runtime: python
-    region: oregon
+    region: frankfurt
     plan: free
 
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r src/render_packages.txt
 
-    # gunicorn = production WSGI server, never use Flask dev server in prod
-    # api:app        → file api.py, Flask object named app
-    # $PORT          → Render injects this at runtime, do NOT hardcode 5000
-    # --timeout 300  → GARCH training + simulation can take >60s; default 30s kills the request
-    # --workers 1    → app uses in-memory state={} dict; multiple workers each
-    #                  have separate memory, so train in worker-1 and forecast
-    #                  in worker-2 would see an empty state and fail
-    startCommand: gunicorn api:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1
+    startCommand: gunicorn src.app:app --bind 0.0.0.0:$PORT --timeout 1200 --workers 1
 
-    # health check — Render pings this to confirm the app is up
     healthCheckPath: /
 
-    # auto-deploy every time you push to main branch
     autoDeploy: true
 
     envVars:
-      # flush Python logs immediately — without this Render shows no logs until crash
       - key: PYTHONUNBUFFERED
         value: "1"
-
-      # tells Flask it is behind Render's reverse proxy (fixes url_for, redirects)
       - key: FLASK_ENV
         value: production
