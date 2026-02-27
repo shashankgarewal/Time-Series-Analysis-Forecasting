@@ -35,5 +35,5 @@ HIGH_DRIFT = 0.00 / 252   # flat in volatile regime
 PERCENTILES = [5, 25, 50, 75, 95]
 
 # api
-HOST = "0.0.0.0"   # FIX: was "127.0.0.0" which is not a valid bind address
+HOST = "127.0.0.1"
 PORT = 5000

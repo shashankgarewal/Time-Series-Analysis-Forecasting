@@ -8,9 +8,10 @@ import yfinance as yf
 import config
 
 
-def load(ticker=None, start=config.START_DATE):
-    ticker = ticker or config.TICKER
+def load(ticker=None, start=config.START_DATE, cutoff=config.TRAIN_CUTOFF):
     """Returns: df, df_train, df_test"""
+    
+    ticker = ticker or config.TICKER
     df = yf.download(ticker, start, auto_adjust=True, progress=False)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
@@ -20,8 +21,8 @@ def load(ticker=None, start=config.START_DATE):
     df["pctLogReturn"] = df["LogReturn"] * config.SCALE   # scale for numeric stability
     df.dropna(inplace=True)
 
-    df_train = df[df.index < config.TRAIN_CUTOFF]
-    df_test  = df[df.index >= config.TRAIN_CUTOFF]
+    df_train = df[df.index < cutoff]
+    df_test  = df[df.index >= cutoff]
 
     return df, df_train, df_test
 

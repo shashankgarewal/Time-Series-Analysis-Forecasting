@@ -38,7 +38,8 @@ def handle_exception(e):
 
 @app.route("/")
 def home():
-    return render_template("index.html", ticker=config.TICKER, trained=trained())
+    return render_template("index.html", ticker=config.TICKER, start=config.START_DATE, 
+                           cutoff=config.TRAIN_CUTOFF, trained=trained())
 
 
 @app.route("/train", methods=["POST"])
@@ -46,12 +47,14 @@ def train():
     body          = request.get_json(silent=True) or {}
     detector_name = body.get("regime_detector", "hysteresis")
     ticker        = body.get("ticker", "").strip().upper() or config.TICKER
+    start         = body.get("start_date", config.START_DATE) or config.START_DATE
+    cutoff        = body.get("train_cutoff", config.TRAIN_CUTOFF) or config.TRAIN_CUTOFF
 
     try:
-        df, df_train, df_test = data_module.load(ticker)
+        df, df_train, df_test = data_module.load(ticker, start, cutoff)
     except Exception:
         ticker = config.TICKER
-        df, df_train, df_test = data_module.load(ticker)
+        df, df_train, df_test = data_module.load(ticker, start, cutoff)
 
     features_train = data_module.build_features(df_train)
     features_test  = data_module.build_features(df_test)

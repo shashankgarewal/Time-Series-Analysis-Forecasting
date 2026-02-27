@@ -31,7 +31,14 @@ button:hover { background: #e8e8e8; }
 <div class="row">
 <label>Ticker</label>
 <input id="ticker" value="{{ ticker }}" style="width:120px; text-transform:uppercase;" />
-<span class="hint">invalid falls back to MSFT</span>
+</div>
+<div class="row">
+<label>Start Date</label>
+<input id="start" value="{{ start }}" />
+</div>
+<div class="row">
+<label>Train Test Split</label>
+<input id="cutoff" value="{{ cutoff }}" />
 </div>
 <div class="row">
 <label>Regime detector</label>
@@ -112,6 +119,9 @@ async function trainModel() {
         const data = await post("/train", {
             regime_detector: document.getElementById("detector").value,
             ticker:          document.getElementById("ticker").value.trim().toUpperCase(),
+            start_date:      document.getElementById("start").value,
+            train_cutoff:    document.getElementById("cutoff").value,
+            regime_detector: document.getElementById("detector").value,
         });
 
         document.getElementById("status-text").textContent = "trained";
