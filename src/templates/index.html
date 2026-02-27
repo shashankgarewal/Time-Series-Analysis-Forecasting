@@ -6,7 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 * { box-sizing: border-box; }
-body { font-family: Arial, sans-serif; max-width: 820px; margin: 24px auto; padding: 0 16px; color: #222; }
+body { font-family: Arial, sans-serif; max-width: 950px; width: 95%; margin: 24px auto; padding: 0 16px; color: #222; }
 h1 { font-size: 20px; margin: 0 0 20px; }
 h2 { font-size: 15px; margin: 28px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
 .row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
@@ -19,15 +19,27 @@ button:hover { background: #e8e8e8; }
 .box.err { border-color: #e55; background: #fff5f5; color: #c00; }
 .box div { margin: 3px 0; }
 .chart-wrap { display: none; margin-top: 12px; }
-.hint { font-size: 12px; color: #888; }
+.hint { text-align: left; font-size: 14px; color: #757575; }
+.hint.tight {font-size: 14.85px; color: #515151; }
 </style>
 </head>
 
 <body>
-<h1> Regime Volatility Forecaster</h1>
+<div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 10px;">
+    <h1>Regime Volatility Forecaster</h1>
+<p style="text-align: right; margin: 0 0"><a href="https://github.com/shashankgarewal/time-series-analysis-forecasting" target="_blank" rel="noopener">Shashank Garewal, Github</a> </p>
+</div>
+<p style="text-align: left;" class="hint tight" style="margin:0 0 0px;">
+    • Helps organizations anticipate structural changes in data before they disrupt planning and performance, and impact decision-making. <br>
+    • Applicable across domain use cases including demand forecasting, operational systems, energy load management, and risk monitoring.
+</p>
 
 <!-- 1) TRAIN -->
-<h2>1) Train</h2>
+<h2>1) Train (segment-regime)</h2>
+<p style="text-align: left;" class="hint" style="margin:0 0 8px;">
+    • Reduces the exposure to unexpected shifts by identifying structural changes in historical data early.<br>
+    • Uses statistical properties to identify latent regimes and segment distinct dynamic states through statistical algorithms (HMM/hysteresis).
+</p>
 <div class="row">
 <label>Ticker</label>
 <input id="ticker" value="{{ ticker }}" style="width:120px; text-transform:uppercase;" />
@@ -56,6 +68,10 @@ button:hover { background: #e8e8e8; }
 
 <!-- 2) FORECAST -->
 <h2>2) Forecast (next-step volatility)</h2>
+<p style="text-align: left;" class="hint" style="margin:0 0 8px;">
+    • Provides forward-looking uncertainty estimates to support risk-aware planning and decision-making.<br>
+    • Implements regime-specific conditional variance modeling and evaluates forecasts against realized volatility.
+</p>
 <div class="row">
 <label>Regime override</label>
 <select id="regime-override">
@@ -70,6 +86,10 @@ button:hover { background: #e8e8e8; }
 
 <!-- 3) SIMULATE -->
 <h2>3) Simulate (Monte Carlo)</h2>
+<p style="text-align: left;" class="hint" style="margin:0 0 8px;">
+    • Helps in scenario-based decision-making by modeling multiple plausible future outcomes instead of a single prediction.<br>
+    • Applies stochastic simulation using regime-conditioned parameters to produce confidence bands and outcome distributions.
+</p>
 <div class="row"><label>Last price</label><input type="number" id="last-price" placeholder="auto (last train close)" step="0.01" style="width:200px;" /></div>
 <div class="row"><label>Horizon (days)</label><input type="number" id="horizon" placeholder="auto (full test set)" min="1" max="2000" style="width:200px;" /></div>
 <div class="row"><label>Paths</label><input type="number" id="n-paths" value="500" min="100" max="5000" style="width:80px;" /></div>
@@ -79,7 +99,11 @@ button:hover { background: #e8e8e8; }
 
 <!-- 4) WALK-FORWARD BACK-TEST -->
 <h2>4) Evaluate (walk-forward back-test)</h2>
-<p class="hint" style="margin:0 0 8px;">Re-fits day-by-day over the last N days; compares predicted vs realised vol proxy.</p>
+<p class="hint" style="margin:0 0 8px;">
+    • Sustains decision confidence by identifying performance decay as conditions shift.<br>
+    • Applies rolling out-of-sample testing with periodic model recalibration to handle non-stationarity and maintain predictive stability.<br>
+    • Demonstrates measurable gains over static single-training approaches.
+</p>
 <div class="row"><label>Last N days</label><input type="number" id="duration" value="60" min="20" max="504" style="width:80px;" /></div>
 <button onclick="runEvaluate()">Evaluate</button>
 <div class="box" id="metrics-box"></div>
